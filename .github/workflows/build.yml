@@ -19,7 +19,7 @@ jobs:
       mesa_commit: ${{ steps.mesa_info.outputs.commit }}
 
     env:
-      MESA_INSTALL_DIR: ~/mesa-git
+      MESA_INSTALL_DIR: /mesa-git
 
     steps:
       - name: Checkout repository
