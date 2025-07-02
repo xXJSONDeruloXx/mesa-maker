@@ -1,0 +1,66 @@
+name: Build and Release Mesa Git
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '0 6 * * *'  # Every day at 6AM UTC
+
+jobs:
+  build-mesa:
+    runs-on: ubuntu-latest
+    container: fedora:rawhide
+
+    env:
+      MESA_INSTALL_DIR: /mesa-install
+
+    steps:
+      - name: Install dependencies
+        run: |
+          dnf -y update && \
+          dnf -y install git meson ninja-build gcc gcc-c++ \
+            python3-mako python3-ply python3-pyyaml \
+            libdrm-devel llvm-devel clang-devel \
+            libx11-devel libxcb-devel libxrandr-devel \
+            libxshmfence-devel wayland-devel wayland-protocols-devel \
+            vulkan-headers vulkan-loader-devel expat-devel zlib-devel \
+            elfutils-libelf-devel cmake bison flex glslang
+
+      - name: Clone Mesa repo
+        run: |
+          git clone https://gitlab.freedesktop.org/mesa/mesa.git
+          cd mesa
+          echo "MESA_COMMIT=$(git rev-parse --short HEAD)" >> $GITHUB_ENV
+
+      - name: Configure Mesa build
+        run: |
+          cd mesa
+          meson setup build \
+            --prefix=$MESA_INSTALL_DIR \
+            --libdir=lib64 \
+            -Dgallium-drivers=radeonsi,zink,llvmpipe \
+            -Dvulkan-drivers=amd \
+            -Dbuildtype=release
+
+      - name: Build Mesa
+        run: |
+          cd mesa
+          ninja -C build
+
+      - name: Install Mesa
+        run: |
+          cd mesa
+          ninja -C build install
+
+      - name: Archive Mesa build
+        run: |
+          cd $MESA_INSTALL_DIR
+          zip -r ../mesa-${{ env.MESA_COMMIT }}.zip .
+
+      - name: Create Git tag and release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: mesa-${{ env.MESA_COMMIT }}
+          name: Mesa Git ${{ env.MESA_COMMIT }}
+          files: mesa-${{ env.MESA_COMMIT }}.zip
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
