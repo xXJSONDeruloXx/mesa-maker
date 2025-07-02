@@ -24,7 +24,7 @@ jobs:
             libxshmfence-devel wayland-devel wayland-protocols-devel \
             vulkan-headers vulkan-loader-devel expat-devel zlib-devel \
             elfutils-libelf-devel cmake bison flex glslang \
-            libudev-devel spirv-tools-devel lua-devel lua54-devel lua53-devel \
+            libudev-devel spirv-tools-devel lua-devel \
             libunwind-devel libXfixes-devel libomp-devel pkgconfig
 
       - name: Clone Mesa repo
