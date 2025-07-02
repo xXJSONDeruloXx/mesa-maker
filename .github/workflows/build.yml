@@ -38,11 +38,14 @@ jobs:
       - name: Clone Mesa repo
         id: mesa_info
         run: |
+          MESA_COMMIT=$(git ls-remote https://gitlab.freedesktop.org/mesa/mesa.git HEAD | cut -f1)
           git clone https://gitlab.freedesktop.org/mesa/mesa.git
           cd mesa
-          COMMIT=$(git rev-parse --short HEAD)
-          echo "commit=$COMMIT" >> $GITHUB_OUTPUT
-          echo "Mesa commit: $COMMIT"
+          git checkout $MESA_COMMIT
+          echo "commit=$(git rev-parse --short HEAD)" >> $GITHUB_OUTPUT
+          echo "commit_full=$MESA_COMMIT" >> $GITHUB_OUTPUT
+          echo "Mesa commit (short): $(git rev-parse --short HEAD)"
+          echo "Mesa commit (full): $MESA_COMMIT"
 
       - name: Configure Mesa build
         run: |
@@ -66,7 +69,8 @@ jobs:
 
       - name: Add metadata and helper
         run: |
-          echo "Mesa Git Commit: ${{ steps.mesa_info.outputs.commit }}" > $MESA_INSTALL_DIR/build-info.txt
+          echo "Mesa Git Commit (short): ${{ steps.mesa_info.outputs.commit }}" > $MESA_INSTALL_DIR/build-info.txt
+          echo "Mesa Git Commit (full):  ${{ steps.mesa_info.outputs.commit_full }}" >> $MESA_INSTALL_DIR/build-info.txt
           echo "Build Date: $(date -u)" >> $MESA_INSTALL_DIR/build-info.txt
           if [ -f "$GITHUB_WORKSPACE/mesa-git" ]; then
             cp "$GITHUB_WORKSPACE/mesa-git" "$MESA_INSTALL_DIR/"
@@ -95,10 +99,12 @@ jobs:
           body: |
             Mesa Git Build
             
-            **Mesa Commit:** ${{ steps.mesa_info.outputs.commit }}
+            **Mesa Commit:** ${{ steps.mesa_info.outputs.commit }} (${{ steps.mesa_info.outputs.commit_full }})
             **Build Date:** ${{ steps.timestamp.outputs.timestamp }}
             
-            This build contains the latest Mesa drivers compiled from the git repository.
+            This build contains the latest Mesa drivers compiled from Mesa upstream HEAD.
+            
+            You can verify the commit at: https://gitlab.freedesktop.org/mesa/mesa/-/commit/${{ steps.mesa_info.outputs.commit_full }}
           files: artifacts/mesa-git.zip
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
