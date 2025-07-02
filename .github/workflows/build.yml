@@ -29,7 +29,8 @@ jobs:
             libXrandr-devel libXxf86vm-devel libxcb-devel libxshmfence-devel \
             libva-devel libvdpau-devel wayland-devel wayland-protocols-devel \
             vulkan-headers vulkan-loader-devel expat-devel zlib-devel \
-            elfutils-libelf-devel libunwind-devel python3-mako python3-ply llvm-devel clang-devel
+            elfutils-libelf-devel libunwind-devel python3-mako python3-ply llvm-devel clang-devel \
+            zip unzip
 
       - name: Clone Mesa repo
         id: mesa_info
@@ -48,17 +49,17 @@ jobs:
             --libdir=lib64 \
             -Dgallium-drivers=radeonsi,softpipe,llvmpipe,zink \
             -Dvulkan-drivers=amd \
-            -Dbuildtype=release
+            -Dbuildtype=release || { echo "Meson setup failed. This may be a Mesa git issue."; exit 2; }
 
       - name: Build Mesa
         run: |
           cd mesa
-          ninja -C build || { echo "Mesa build failed. This may be a Mesa git issue."; exit 1; }
+          ninja -C build || { echo "Mesa build failed. This may be a Mesa git issue."; exit 2; }
 
       - name: Install Mesa
         run: |
           cd mesa
-          ninja -C build install || { echo "Mesa install failed."; exit 1; }
+          ninja -C build install || { echo "Mesa install failed."; exit 2; }
 
       - name: Archive Mesa build
         run: |
