@@ -73,12 +73,12 @@ jobs:
           cp $GITHUB_WORKSPACE/mesa-git $MESA_INSTALL_DIR/
           chmod +x $MESA_INSTALL_DIR/mesa-git
           
-          # Create the archive
+          # Create the archive in the workspace directory for the release action to find
           cd $MESA_INSTALL_DIR
-          zip -r ../mesa-${{ steps.mesa_info.outputs.commit }}.zip .
+          zip -r $GITHUB_WORKSPACE/mesa-${{ steps.mesa_info.outputs.commit }}.zip .
           
           # Verify zip file was created
-          ls -la ../mesa-${{ steps.mesa_info.outputs.commit }}.zip
+          ls -la $GITHUB_WORKSPACE/mesa-${{ steps.mesa_info.outputs.commit }}.zip
 
       - name: Create Git tag and release
         uses: softprops/action-gh-release@v2
