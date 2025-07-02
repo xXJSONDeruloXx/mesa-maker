@@ -1,12 +1,12 @@
 name: Build and Release Mesa Git
 
 on:
-    workflow_dispatch:
-    schedule:
-        - cron: '0 6 * * *'  # Every day at 6AM UTC
-    push:
-        branches:
-            - master
+  workflow_dispatch:
+  schedule:
+    - cron: '0 6 * * *'  # Every day at 6AM UTC
+  push:
+    branches:
+      - master
 
 permissions:
   contents: write
@@ -19,7 +19,7 @@ jobs:
       mesa_commit: ${{ steps.mesa_info.outputs.commit }}
 
     env:
-      MESA_INSTALL_DIR: /mesa-git
+      MESA_INSTALL_DIR: ${{ github.workspace }}/mesa-git
 
     steps:
       - name: Checkout repository
@@ -54,7 +54,7 @@ jobs:
         run: |
           cd mesa
           meson setup build \
-            --prefix=$MESA_INSTALL_DIR \
+            --prefix="$MESA_INSTALL_DIR" \
             --libdir=lib64 \
             -Dgallium-drivers=radeonsi,softpipe,llvmpipe,zink \
             -Dvulkan-drivers=amd \
@@ -69,6 +69,11 @@ jobs:
         run: |
           cd mesa
           ninja -C build install || { echo "Mesa install failed."; exit 2; }
+
+      - name: Patch Vulkan ICD for portability
+        run: |
+          find "$MESA_INSTALL_DIR/share/vulkan/icd.d" -type f -name "*.json" -exec \
+          sed -i 's|"library_path": *".*libvulkan_radeon.so"|"library_path": "libvulkan_radeon.so"|' {} \;
 
       - name: Add metadata and helper
         run: |
@@ -90,9 +95,9 @@ jobs:
       - name: Archive Mesa build
         run: |
           mkdir -p $GITHUB_WORKSPACE/artifacts
-          cd $MESA_INSTALL_DIR
-          zip -r $GITHUB_WORKSPACE/artifacts/mesa-git.zip .
-          ls -la $GITHUB_WORKSPACE/artifacts/mesa-git.zip
+          cd "$MESA_INSTALL_DIR"
+          zip -r "$GITHUB_WORKSPACE/artifacts/mesa-git.zip" .
+          ls -la "$GITHUB_WORKSPACE/artifacts/mesa-git.zip"
 
       - name: Create Git tag and release
         uses: softprops/action-gh-release@v2
@@ -101,12 +106,12 @@ jobs:
           name: Mesa Git Build ${{ steps.timestamp.outputs.timestamp }}
           body: |
             Mesa Git Build
-            
+
             **Mesa Commit:** ${{ steps.mesa_info.outputs.commit }} (${{ steps.mesa_info.outputs.commit_full }})
             **Build Date:** ${{ steps.timestamp.outputs.timestamp }}
-            
+
             This build contains the latest Mesa drivers compiled from Mesa upstream HEAD.
-            
+
             You can verify the commit at: https://gitlab.freedesktop.org/mesa/mesa/-/commit/${{ steps.mesa_info.outputs.commit_full }}
           files: artifacts/mesa-git.zip
         env:
