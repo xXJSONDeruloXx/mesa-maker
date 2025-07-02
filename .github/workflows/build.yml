@@ -63,6 +63,9 @@ jobs:
 
       - name: Archive Mesa build
         run: |
+          # Make sure zip is installed (in case it wasn't installed earlier)
+          dnf -y install zip
+          
           # Copy the helper script
           cp $GITHUB_WORKSPACE/mesa-git $MESA_INSTALL_DIR/
           chmod +x $MESA_INSTALL_DIR/mesa-git
