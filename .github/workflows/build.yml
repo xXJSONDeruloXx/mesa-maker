@@ -64,27 +64,27 @@ jobs:
           cd mesa
           ninja -C build install || { echo "Mesa install failed."; exit 2; }
 
+      - name: Add metadata and helper
+        run: |
+          echo "Mesa Git Commit: ${{ steps.mesa_info.outputs.commit }}" > $MESA_INSTALL_DIR/build-info.txt
+          echo "Build Date: $(date -u)" >> $MESA_INSTALL_DIR/build-info.txt
+          if [ -f "$GITHUB_WORKSPACE/mesa-git" ]; then
+            cp "$GITHUB_WORKSPACE/mesa-git" "$MESA_INSTALL_DIR/"
+            chmod +x "$MESA_INSTALL_DIR/mesa-git"
+          fi
+
       - name: Archive Mesa build
         run: |
-          # Make sure zip is installed (in case it wasn't installed earlier)
-          dnf -y install zip
-          
-          # Copy the helper script
-          cp $GITHUB_WORKSPACE/mesa-git $MESA_INSTALL_DIR/
-          chmod +x $MESA_INSTALL_DIR/mesa-git
-          
-          # Create the archive in the workspace directory for the release action to find
+          mkdir -p $GITHUB_WORKSPACE/artifacts
           cd $MESA_INSTALL_DIR
-          zip -r $GITHUB_WORKSPACE/mesa-${{ steps.mesa_info.outputs.commit }}.zip .
-          
-          # Verify zip file was created
-          ls -la $GITHUB_WORKSPACE/mesa-${{ steps.mesa_info.outputs.commit }}.zip
+          zip -r $GITHUB_WORKSPACE/artifacts/mesa-${{ steps.mesa_info.outputs.commit }}.zip .
+          ls -la $GITHUB_WORKSPACE/artifacts/mesa-${{ steps.mesa_info.outputs.commit }}.zip
 
       - name: Create Git tag and release
         uses: softprops/action-gh-release@v2
         with:
           tag_name: mesa-${{ steps.mesa_info.outputs.commit }}
           name: Mesa Git ${{ steps.mesa_info.outputs.commit }}
-          files: mesa-${{ steps.mesa_info.outputs.commit }}.zip
+          files: artifacts/mesa-${{ steps.mesa_info.outputs.commit }}.zip
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
