@@ -2,20 +2,19 @@
 
 This repo hosts automated builds of the latest Mesa from `main` branch.
 
-## 🔧 How it works
+## How it works
 
 - Builds daily at 6 AM UTC or on manual trigger
 - Targets `radeonsi`, `zink`, `softpipe`, and `llvmpipe` Gallium drivers
 - Vulkan support: `amd`
 - Builds are uploaded as `.zip` files to the [Releases](../../releases)
 
-## 📥 Usage
+## Usage
 
-1. Download the latest `mesa-<commit>.zip` from [Releases](../../releases)
+1. Download the latest `mesa-git.zip` from [Releases](../../releases)
 2. Extract it:
    ```bash
-   unzip mesa-*.zip -d mesa-git
-   cd mesa-git
+   unzip mesa-git.zip
    ```
 3. Use it:
 
@@ -25,18 +24,37 @@ export LIBGL_DRIVERS_PATH=$PWD/lib64/dri
 export VK_ICD_FILENAMES=$PWD/share/vulkan/icd.d/radeon_icd.x86_64.json
 ```
 
-### Example Commands
+## Release Zip Structure
 
-```bash
-# Test OpenGL:
-LD_LIBRARY_PATH=$PWD/lib64:$LD_LIBRARY_PATH LIBGL_DRIVERS_PATH=$PWD/lib64/dri glxinfo | grep 'OpenGL version'
+After extracting `mesa-git.zip`, you'll find the following structure:
 
-# Test Vulkan:
-LD_LIBRARY_PATH=$PWD/lib64:$LD_LIBRARY_PATH VK_ICD_FILENAMES=$PWD/share/vulkan/icd.d/radeon_icd.x86_64.json vulkaninfo | head -20
-
-# Run an application with custom Mesa:
-LD_LIBRARY_PATH=$PWD/lib64:$LD_LIBRARY_PATH LIBGL_DRIVERS_PATH=$PWD/lib64/dri VK_ICD_FILENAMES=$PWD/share/vulkan/icd.d/radeon_icd.x86_64.json your-application
-
-# For Steam games (add this to game's launch options):
-LD_LIBRARY_PATH=$PWD/lib64:$LD_LIBRARY_PATH LIBGL_DRIVERS_PATH=$PWD/lib64/dri VK_ICD_FILENAMES=$PWD/share/vulkan/icd.d/radeon_icd.x86_64.json %command%
 ```
+mesa-git/
+├── build-info.txt      # Commit hash and build date
+├── include/            # Mesa headers (EGL, GBM, GL)
+├── lib64/              # Libraries and drivers
+│   ├── dri/            # Gallium drivers (radeonsi, zink, etc.)
+│   ├── gbm/            # GBM driver
+│   ├── pkgconfig/      # .pc files for development
+│   └── vdpau/          # VDPAU libraries for video acceleration
+├── mesa-git            # Helper script to run commands with this Mesa build
+└── share/
+    ├── drirc.d/        # Default driver configs
+    ├── glvnd/          # GLVND vendor config
+    └── vulkan/
+        └── icd.d/      # Vulkan ICD JSON
+
+```
+
+- **`mesa-git` script**: A helper to run any command or game with the custom Mesa environment. It sets up all necessary environment variables automatically.
+- **`build-info.txt`**: Shows the Mesa commit and build date for reference.
+
+### Example: Using with Steam
+
+If you extract to your home directory, you can force a Steam game to use this Mesa build by setting the launch option:
+
+```
+~/mesa-git/mesa-git %command%
+```
+
+This ensures the game runs with the libraries and drivers from the extracted Mesa build, overriding the system defaults.
