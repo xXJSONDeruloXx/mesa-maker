@@ -9,29 +9,36 @@ jobs:
   build-mesa:
     runs-on: ubuntu-latest
     container: fedora:rawhide
+    outputs:
+      mesa_commit: ${{ steps.mesa_info.outputs.commit }}
 
     env:
       MESA_INSTALL_DIR: /mesa-install
 
     steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
       - name: Install dependencies
         run: |
           dnf -y update && \
-          dnf -y install git meson ninja-build gcc gcc-c++ \
-            python3-mako python3-ply python3-pyyaml \
-            libdrm-devel llvm-devel clang-devel \
-            libX11-devel libxcb-devel libXrandr-devel \
-            libxshmfence-devel wayland-devel wayland-protocols-devel \
+          dnf -y install gcc gcc-c++ make automake autoconf libtool \
+            meson ninja-build git wget python3-pyyaml \
+            bison flex glslang cmake libglvnd-core-devel \
+            libdrm-devel libX11-devel libXext-devel libXfixes-devel \
+            libXrandr-devel libXxf86vm-devel libxcb-devel libxshmfence-devel \
+            libva-devel libvdpau-devel wayland-devel wayland-protocols-devel \
             vulkan-headers vulkan-loader-devel expat-devel zlib-devel \
-            elfutils-libelf-devel cmake bison flex glslang \
-            libudev-devel spirv-tools-devel lua-devel \
-            libunwind-devel libXfixes-devel libomp-devel pkgconfig
+            elfutils-libelf-devel libunwind-devel python3-mako python3-ply llvm-devel clang-devel
 
       - name: Clone Mesa repo
+        id: mesa_info
         run: |
           git clone https://gitlab.freedesktop.org/mesa/mesa.git
           cd mesa
-          echo "MESA_COMMIT=$(git rev-parse --short HEAD)" >> $GITHUB_ENV
+          COMMIT=$(git rev-parse --short HEAD)
+          echo "commit=$COMMIT" >> $GITHUB_OUTPUT
+          echo "Mesa commit: $COMMIT"
 
       - name: Configure Mesa build
         run: |
@@ -39,30 +46,35 @@ jobs:
           meson setup build \
             --prefix=$MESA_INSTALL_DIR \
             --libdir=lib64 \
-            -Dgallium-drivers=radeonsi,zink,llvmpipe \
+            -Dgallium-drivers=radeonsi,softpipe,llvmpipe,zink \
             -Dvulkan-drivers=amd \
             -Dbuildtype=release
 
       - name: Build Mesa
         run: |
           cd mesa
-          ninja -C build
+          ninja -C build || { echo "Mesa build failed. This may be a Mesa git issue."; exit 1; }
 
       - name: Install Mesa
         run: |
           cd mesa
-          ninja -C build install
+          ninja -C build install || { echo "Mesa install failed."; exit 1; }
 
       - name: Archive Mesa build
         run: |
+          # Copy the helper script
+          cp $GITHUB_WORKSPACE/mesa-git $MESA_INSTALL_DIR/
+          chmod +x $MESA_INSTALL_DIR/mesa-git
+          
+          # Create the archive
           cd $MESA_INSTALL_DIR
-          zip -r ../mesa-${{ env.MESA_COMMIT }}.zip .
+          zip -r ../mesa-${{ steps.mesa_info.outputs.commit }}.zip .
 
       - name: Create Git tag and release
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: mesa-${{ env.MESA_COMMIT }}
-          name: Mesa Git ${{ env.MESA_COMMIT }}
-          files: mesa-${{ env.MESA_COMMIT }}.zip
+          tag_name: mesa-${{ steps.mesa_info.outputs.commit }}
+          name: Mesa Git ${{ steps.mesa_info.outputs.commit }}
+          files: mesa-${{ steps.mesa_info.outputs.commit }}.zip
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

@@ -1,0 +1,34 @@
+#!/usr/bin/env bash
+# Helper script to run commands with the custom Mesa build
+
+# Exit on any error
+set -e
+
+if [[ $# -eq 0 ]]; then
+    echo -e "\n\033[1;34m═══════════════════════════════════════════════════════════════\033[0m"
+    echo -e "\033[1;32mMesa Git Helper\033[0m"
+    echo -e "\033[1;34m═══════════════════════════════════════════════════════════════\033[0m"
+    echo -e "\033[1mUsage:\033[0m mesa-git <command> [args...]"
+    echo -e "\033[1mExamples:\033[0m"
+    echo -e "  \033[1m# Test OpenGL:\033[0m"
+    echo -e "  \033[0;32mmesa-git glxinfo | grep 'OpenGL version'\033[0m"
+    echo -e "  \033[1m# Test Vulkan:\033[0m"
+    echo -e "  \033[0;32mmesa-git vulkaninfo | head -20\033[0m"
+    echo -e "  \033[1m# Run application with custom Mesa:\033[0m"
+    echo -e "  \033[0;32mmesa-git your-application\033[0m"
+    echo -e "  \033[1m# Steam launch option:\033[0m"
+    echo -e "  \033[0;32mmesa-git %command%\033[0m"
+    echo -e "\033[1;34m═══════════════════════════════════════════════════════════════\033[0m\n"
+    exit 0
+fi
+
+# Get the directory where this script is located
+SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"
+
+# Set up environment
+export LD_LIBRARY_PATH="$SCRIPT_DIR/lib64:$LD_LIBRARY_PATH"
+export LIBGL_DRIVERS_PATH="$SCRIPT_DIR/lib64/dri"
+export VK_ICD_FILENAMES="$SCRIPT_DIR/share/vulkan/icd.d/radeon_icd.x86_64.json"
+
+# Execute the command
+exec "$@"
