@@ -5,6 +5,9 @@ on:
   schedule:
     - cron: '0 6 * * *'  # Every day at 6AM UTC
 
+permissions:
+  contents: write
+
 jobs:
   build-mesa:
     runs-on: ubuntu-latest
@@ -73,6 +76,9 @@ jobs:
           # Create the archive
           cd $MESA_INSTALL_DIR
           zip -r ../mesa-${{ steps.mesa_info.outputs.commit }}.zip .
+          
+          # Verify zip file was created
+          ls -la ../mesa-${{ steps.mesa_info.outputs.commit }}.zip
 
       - name: Create Git tag and release
         uses: softprops/action-gh-release@v2
