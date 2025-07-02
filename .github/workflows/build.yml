@@ -73,18 +73,32 @@ jobs:
             chmod +x "$MESA_INSTALL_DIR/mesa-git"
           fi
 
+      - name: Generate timestamp
+        id: timestamp
+        run: |
+          TIMESTAMP=$(date -u +"%Y%m%d-%H%M%S")
+          echo "timestamp=$TIMESTAMP" >> $GITHUB_OUTPUT
+          echo "Generated timestamp: $TIMESTAMP"
+
       - name: Archive Mesa build
         run: |
           mkdir -p $GITHUB_WORKSPACE/artifacts
           cd $MESA_INSTALL_DIR
-          zip -r $GITHUB_WORKSPACE/artifacts/mesa-${{ steps.mesa_info.outputs.commit }}.zip .
-          ls -la $GITHUB_WORKSPACE/artifacts/mesa-${{ steps.mesa_info.outputs.commit }}.zip
+          zip -r $GITHUB_WORKSPACE/artifacts/mesa-git.zip .
+          ls -la $GITHUB_WORKSPACE/artifacts/mesa-git.zip
 
       - name: Create Git tag and release
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: mesa-${{ steps.mesa_info.outputs.commit }}
-          name: Mesa Git ${{ steps.mesa_info.outputs.commit }}
-          files: artifacts/mesa-${{ steps.mesa_info.outputs.commit }}.zip
+          tag_name: mesa-${{ steps.timestamp.outputs.timestamp }}
+          name: Mesa Git Build ${{ steps.timestamp.outputs.timestamp }}
+          body: |
+            Mesa Git Build
+            
+            **Mesa Commit:** ${{ steps.mesa_info.outputs.commit }}
+            **Build Date:** ${{ steps.timestamp.outputs.timestamp }}
+            
+            This build contains the latest Mesa drivers compiled from the git repository.
+          files: artifacts/mesa-git.zip
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
