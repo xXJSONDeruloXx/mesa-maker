@@ -20,7 +20,7 @@ jobs:
           dnf -y install git meson ninja-build gcc gcc-c++ \
             python3-mako python3-ply python3-pyyaml \
             libdrm-devel llvm-devel clang-devel \
-            libx11-devel libxcb-devel libxrandr-devel \
+            libX11-devel libxcb-devel libXrandr-devel \
             libxshmfence-devel wayland-devel wayland-protocols-devel \
             vulkan-headers vulkan-loader-devel expat-devel zlib-devel \
             elfutils-libelf-devel cmake bison flex glslang
