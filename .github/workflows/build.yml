@@ -7,6 +7,7 @@ on:
   push:
     branches:
       - master
+      - llvm  # Allow builds from llvm branch for testing
 
 permissions:
   contents: write
@@ -36,7 +37,7 @@ jobs:
             libva-devel libvdpau-devel wayland-devel wayland-protocols-devel \
             vulkan-headers vulkan-loader-devel expat-devel zlib-devel \
             elfutils-libelf-devel libunwind-devel python3-mako python3-ply llvm-devel clang-devel \
-            zip unzip
+            zip unzip patchelf
 
       - name: Clone Mesa repo
         id: mesa_info
@@ -69,6 +70,36 @@ jobs:
         run: |
           cd mesa
           ninja -C build install || { echo "Mesa install failed."; exit 2; }
+
+      - name: Bundle LLVM libraries
+        run: |
+          # Create lib directory for bundled libraries
+          mkdir -p "$MESA_INSTALL_DIR/lib64/bundled"
+          
+          # Find and copy LLVM libraries that Mesa depends on
+          LLVM_LIBS=$(ldd "$MESA_INSTALL_DIR/lib64/libvulkan_radeon.so" | grep -E "libLLVM|libclang" | awk '{print $3}' | grep -v "not found" || true)
+          if [ -n "$LLVM_LIBS" ]; then
+            echo "Copying LLVM libraries:"
+            for lib in $LLVM_LIBS; do
+              if [ -f "$lib" ]; then
+                echo "  $lib"
+                cp "$lib" "$MESA_INSTALL_DIR/lib64/bundled/"
+              fi
+            done
+          fi
+          
+          # Also copy any LLVM shared libraries from system
+          find /usr/lib64 -name "libLLVM*.so*" -exec cp {} "$MESA_INSTALL_DIR/lib64/bundled/" \; 2>/dev/null || true
+          find /usr/lib64 -name "libclang*.so*" -exec cp {} "$MESA_INSTALL_DIR/lib64/bundled/" \; 2>/dev/null || true
+          
+          # Set RPATH for Mesa libraries to look in bundled directory first
+          if command -v patchelf >/dev/null 2>&1; then
+            find "$MESA_INSTALL_DIR/lib64" -name "*.so*" -not -path "*/bundled/*" -exec \
+              patchelf --set-rpath '$ORIGIN/bundled:$ORIGIN' {} \; 2>/dev/null || true
+          fi
+          
+          echo "Bundled libraries:"
+          ls -la "$MESA_INSTALL_DIR/lib64/bundled/" || echo "No bundled libraries found"
 
       - name: Patch Vulkan ICD for portability
         run: |
@@ -105,12 +136,20 @@ jobs:
           tag_name: mesa-${{ steps.timestamp.outputs.timestamp }}
           name: Mesa Git Build ${{ steps.timestamp.outputs.timestamp }}
           body: |
-            Mesa Git Build
+            Mesa Git Build with Bundled LLVM
 
             **Mesa Commit:** ${{ steps.mesa_info.outputs.commit }} (${{ steps.mesa_info.outputs.commit_full }})
             **Build Date:** ${{ steps.timestamp.outputs.timestamp }}
+            **LLVM Support:** LLVM 20.1 libraries bundled for Vulkan Translation Layers
 
-            This build contains the latest Mesa drivers compiled from Mesa upstream HEAD.
+            This build contains the latest Mesa drivers compiled from Mesa upstream HEAD with bundled LLVM libraries for maximum portability.
+
+            **Usage:**
+            1. Extract the archive
+            2. Use the `mesa-git` wrapper script for any application: `./mesa-git your-application`
+            3. For Steam: Set launch option to `/path/to/mesa-git %command%`
+
+            The `mesa-git` script automatically configures all environment variables and LLVM library paths.
 
             You can verify the commit at: https://gitlab.freedesktop.org/mesa/mesa/-/commit/${{ steps.mesa_info.outputs.commit_full }}
           files: artifacts/mesa-git.zip

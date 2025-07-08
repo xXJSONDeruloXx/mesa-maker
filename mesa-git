@@ -25,8 +25,8 @@ fi
 # Get the directory where this script is located
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"
 
-# Set up environment
-export LD_LIBRARY_PATH="$SCRIPT_DIR/lib64:$LD_LIBRARY_PATH"
+# Set up environment with bundled LLVM libraries
+export LD_LIBRARY_PATH="$SCRIPT_DIR/lib64/bundled:$SCRIPT_DIR/lib64:$LD_LIBRARY_PATH"
 export LIBGL_DRIVERS_PATH="$SCRIPT_DIR/lib64/dri"
 export VK_ICD_FILENAMES="$SCRIPT_DIR/share/vulkan/icd.d/radeon_icd.x86_64.json"
 
